@@ -1,0 +1,117 @@
+import csv
+import numpy
+import sys
+
+def convert_nums(diamond):
+    cut_table = {
+            'Fair': 1,
+            'Good': 2,
+            'Very Good': 3,
+            'Premium': 4,
+            'Ideal': 5
+    }
+
+    color_table = {
+            "D": 7,
+            "E": 6,
+            "F": 5,
+            "G": 4,
+            "H": 3,
+            "I": 2,
+            "J": 1
+    }
+
+    clarity_table = {
+            "I3": 1,
+            "I2": 2,
+            "I1": 3,
+            "SI2": 4,
+            "SI1": 5,
+            "VS2": 6,
+            "VS1": 7,
+            "VVS2": 8,
+            "VVS1": 9,
+            "IF": 10,
+            "FL": 11
+    }
+
+    diamond[1] = cut_table[diamond[1]]
+    diamond[2] = color_table[diamond[2]]
+    diamond[3] = clarity_table[diamond[3]]
+    
+    # The values x, y, e z will became one single value, representing the volume
+    diamond[4] = float(diamond[4]) * float(diamond[5]) * float(diamond[6])
+
+def load_data(input_diamonds):
+    f_diamonds = open(input_diamonds, newline='')
+    d_reader = csv.reader(f_diamonds, delimiter=',')
+    d_list = list(d_reader)
+    d_list.pop(0)
+
+    max_params = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    for diamond in d_list:
+        convert_nums(diamond)
+        for i in range(0,9):
+            if float(diamond[i]) > max_params[i] and i != 7:
+                max_params[i] = float(diamond[i])
+                
+    d_list_array = numpy.array(d_list,dtype=numpy.float64)
+    print(d_list_array[0])
+    d_list_array = numpy.delete(d_list_array, 5, 1)
+    print(d_list_array[0])
+    d_list_array = numpy.delete(d_list_array, 5, 1)
+    print(d_list_array[0])
+
+    # Doesn't normalize price
+    max_params[7] = 1
+
+    #Normalization
+    for diamond in d_list_array:
+        for i in range(0,7):
+            diamond[i] = float(diamond[i])/max_params[i]
+
+    return d_list_array
+
+# Returns the function h for a sample
+def linear_function(sample, Teta):
+    return sample[6]*Teta[7] + sample[5]*Teta[6] + sample[4]*Teta[5] + sample[3]*Teta[4] + sample[2]*Teta[3] + sample[1]*Teta[2] + sample[0]*Teta[1] + Teta[0]
+    #return Teta[7] + Teta[6] + Teta[5] + Teta[4] + Teta[3] + Teta[2] + Teta[1] + Teta[0]
+
+# Calculates the derivative value for a sample
+def derivative(sample, Teta, index_variable):
+    f = linear_function(sample, Teta)
+    if(index_variable != -1):
+        return (f-sample[7])*sample[index_variable] # sample[7] is the target variable    
+    return (f-sample[7])
+
+
+# Calculates the stochastic gradient descent
+# Receive a "X" sample matrix, a "Teta" parameters vector, and the learning rate "alfa"
+def stochastic_gradient_descent(X, Teta, alfa):
+    i = 0
+    iterations = 100
+    while(i < iterations):
+        for sample in X:
+            for j in range (0,len(Teta)):
+                Teta[j] = Teta[j] - alfa*derivative(sample, Teta, j-1)
+        err = linear_function(sample, Teta)
+        print(err)
+        i = i + 1
+
+
+def main():
+    if (len(sys.argv) != 3):
+        print("ERROR: Usage python3 compute-diamonds.py (train-data) (test-data)")
+        return
+
+    diamonds = load_data(sys.argv[1])
+    #validation = load_data(sys.argv[2])
+    teta = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0]
+    stochastic_gradient_descent(diamonds, teta, 0.001)
+    #mean_squared_error(validation, theta)
+    #plot_results(validation, theta)
+
+    #print(theta)
+
+if __name__ == "__main__":
+        main()
